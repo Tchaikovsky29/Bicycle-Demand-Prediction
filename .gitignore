@@ -209,3 +209,8 @@ __marimo__/
 notes.txt
 src/constants
 Screenshots
+test.py
+try.py
+notebooks/test.ipynb
+data/*
+!data/**/*.dvc

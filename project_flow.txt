@@ -3,3 +3,4 @@ Perform EDA in an ipynb file in notebooks
 Train base models to get an idea of well performing model types - track with mlflow. Add base models.png
 perform hyperparameter tuning on best model (Gradient boosting regressor as it has decent test R2, low training time, and low test RMSE score) - track with mlflow. Add Fine tuning params.png
 steps 2,3,4 are taken from a kaggle notebook available at https://www.kaggle.com/code/jaynandasana/91-7-seoul-bike-sharing-demand-prediction#5.-Scaling-Data-and-Model-Building-Using-Various-Regression-Techniques
+Upload data to a mongodb cluster
