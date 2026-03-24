@@ -1,7 +1,5 @@
 from typing import NamedTuple
-from kfp import compiler, kubernetes
-from kfp.dsl import component, pipeline
-from kfp.kubernetes import use_secret_as_env
+from kfp.dsl import component
 
 @component(
     base_image="tchaikovsky29/env-base-image:latest",
@@ -27,6 +25,7 @@ def data_ingestion_component() -> NamedTuple("IngestOutput", [
     from src.exception import MyException
     from src.logger import logging
     from src.data_access.data import Data
+    from src.constants import BUCKET_NAME
 
     try:
         config = DataIngestionConfig()
@@ -44,7 +43,7 @@ def data_ingestion_component() -> NamedTuple("IngestOutput", [
         meta_path = s3_path.replace(".parquet", ".meta.json")
 
         exists = bucket.path_exists_in_s3(
-            bucket_name=config.bucket_name,
+            bucket_name= BUCKET_NAME,
             path=s3_path
         )
 
@@ -54,7 +53,7 @@ def data_ingestion_component() -> NamedTuple("IngestOutput", [
             logging.info(f"New dataset detected. Uploading to {s3_path}...")
 
             bucket.upload_file(
-                bucket=config.bucket_name,
+                bucket= BUCKET_NAME,
                 key=s3_path,
                 body=dataframe.to_parquet(index=False)
             )
@@ -70,7 +69,7 @@ def data_ingestion_component() -> NamedTuple("IngestOutput", [
                 "ingested_at": datetime.now(timezone.utc).isoformat(),
             }
             bucket.upload_file(
-                bucket=config.bucket_name,
+                bucket= BUCKET_NAME,
                 key=meta_path,
                 body=json.dumps(meta, indent=2).encode()
             )
@@ -84,36 +83,5 @@ def data_ingestion_component() -> NamedTuple("IngestOutput", [
         )
 
     except Exception as e:
+        logging.error(f"Data ingestion error: {e}")
         raise MyException(e, sys)
-
-
-# @pipeline(
-#     name="data-ingestion-pipeline",
-#     description="Ingests data from MongoDB into S3, skipping upload if dataset already exists."
-# )
-# def data_ingestion_pipeline():
-#     ingest = data_ingestion_component()
-#     ingest.set_caching_options(False)
-#     use_secret_as_env(
-#         ingest,
-#         secret_name="app-secrets",
-#         secret_key_to_env={
-#             "MONGODB_URL": "MONGODB_URL",
-#             "DB_NAME": "DB_NAME",
-#             "COLLECTION_NAME": "COLLECTION_NAME",
-#             "BUCKET_NAME": "BUCKET_NAME",
-#             "AWS_ENDPOINT_URL": "AWS_ENDPOINT_URL",
-#             "AWS_ACCESS_KEY_ID": "AWS_ACCESS_KEY_ID",
-#             "AWS_SECRET_ACCESS_KEY": "AWS_SECRET_ACCESS_KEY",
-#             "REPO_OWNER": "REPO_OWNER",
-#             "REPO_NAME": "REPO_NAME",
-#             "TRACKING_URI": "TRACKING_URI",
-#         }
-#     )
-#     kubernetes.set_image_pull_policy(ingest, "Always")
-
-# if __name__ == "__main__":
-#     compiler.Compiler().compile(
-#         data_ingestion_pipeline,
-#         "data_ingestion_pipeline.yaml"
-#     )
