@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "📦 Creating dvc remote..."
-awslocal s3 mb s3://ml-pipeline-dvc-cache
+echo "📦 Creating remote..."
+awslocal s3 mb s3://bicycle-demand-prediction-bucket
 
 echo "✅ Buckets created"
