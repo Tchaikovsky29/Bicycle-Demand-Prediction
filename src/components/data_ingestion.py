@@ -1,94 +1,119 @@
-import os
-import sys
-import subprocess
-from pandas import DataFrame
-from kfp.dsl import component
+from typing import NamedTuple
+from kfp import compiler, kubernetes
+from kfp.dsl import component, pipeline
+from kfp.kubernetes import use_secret_as_env
 
-from src.entity.config_entity import DataIngestionConfig
-from src.entity.artifact_entity import DataIngestionArtifact
-from src.exception import MyException
-from src.logger import logging
-from src.data_access.data import Data
-
-
-class DataIngestion:
-    def __init__(self, data_ingestion_config: DataIngestionConfig = DataIngestionConfig()):
-        try:
-            self.data_ingestion_config = data_ingestion_config
-        except Exception as e:
-            raise MyException(e, sys)
-
-    def export_data_into_feature_store(self) -> DataFrame:
-        """
-        Pull data from MongoDB and save as parquet file
-        """
-
-        try:
-            logging.info("Importing data from MongoDB")
-            my_data = Data()
-            dataframe = my_data.export_collection_as_dataframe(
-                database_name=self.data_ingestion_config.database_name,
-                collection_name=self.data_ingestion_config.collection_name
-            )
-            logging.info(f"Data shape: {dataframe.shape}")
-
-            os.makedirs(self.data_ingestion_config.folder_name, exist_ok=True)
-            file_path = self.data_ingestion_config.data_file_path
-            logging.info(f"Saving dataset to {file_path}")
-
-            dataframe.to_parquet(file_path, index=False)
-            return dataframe
-
-        except Exception as e:
-            logging.error(f"Error saving dataset: {e}")
-            raise MyException(e, sys)
-
-    def track_dataset_with_dvc(self):
-        """
-        Track dataset with DVC and push to remote
-        """
-        try:
-            file_path = self.data_ingestion_config.data_file_path
-            logging.info("Tracking dataset with DVC")
-
-            subprocess.run(["dvc","add", file_path], check=True)
-            logging.info("Pushing dataset to DVC remote")
-            # subprocess.run(["git","add", f"{file_path}.dvc"], check=True)
-            # subprocess.run(["git","commit","f", "-m","add ingested data"], check=True)
-            subprocess.run(["dvc","push"], check=True)
-
-        except Exception as e:
-            logging.error(f"DVC operation failed: {e}")
-            raise MyException(e, sys)
-
-    def initiate_data_ingestion(self) -> DataIngestionArtifact:
-        logging.info("Starting data ingestion")
-        try:
-            self.export_data_into_feature_store()
-            self.track_dataset_with_dvc()
-            artifact = DataIngestionArtifact(
-                ingested_data_path=self.data_ingestion_config.data_file_path
-            )
-            logging.info("Data ingestion completed")
-            return artifact
-        except Exception as e:
-            raise MyException(e, sys)
-
-
-# Kubeflow Component Wrapper
 @component(
-    base_image="python:3.10",
-    packages_to_install=[
-        "pandas",
-        "pymongo",
-        "pyarrow",
-        "dvc[s3]"
-    ]
+    base_image="tchaikovsky29/env-base-image:latest",
 )
-def data_ingestion_component() -> str:
+def data_ingestion_component() -> NamedTuple("IngestOutput", [
+    ("s3_path", str),
+    ("meta_path", str),
+    ("data_hash", str)
+]):
     """
-    Kubeflow pipeline component for data ingestion
+    Pulls the full collection from MongoDB, computes a SHA-256 hash of
+    the DataFrame contents, and uploads it to S3 if not already present.
+    Always returns the S3 path and metadata path for downstream components.
     """
-    ingestion = DataIngestion()
-    artifact = ingestion.initiate_data_ingestion()
-    return artifact.ingested_data_path
+    import json
+    import os
+    import sys
+    from collections import namedtuple
+    from datetime import datetime, timezone
+
+    from src.configuration.aws_connection import buckets
+    from src.entity.config_entity import DataIngestionConfig
+    from src.exception import MyException
+    from src.logger import logging
+    from src.data_access.data import Data
+
+    try:
+        config = DataIngestionConfig()
+        bucket = buckets()
+
+        logging.info("Pulling collection from MongoDB...")
+        my_data = Data()
+        dataframe, hash_value = my_data.export_collection_as_dataframe(
+            database_name=config.database_name,
+            collection_name=config.collection_name
+        )
+        logging.info(f"Pulled {dataframe.shape[0]} rows, hash: {hash_value}")
+
+        s3_path = os.path.join(config.folder_name, f"{hash_value}.parquet")
+        meta_path = s3_path.replace(".parquet", ".meta.json")
+
+        exists = bucket.path_exists_in_s3(
+            bucket_name=config.bucket_name,
+            path=s3_path
+        )
+
+        if exists:
+            logging.info(f"Dataset already exists at {s3_path}. Skipping upload.")
+        else:
+            logging.info(f"New dataset detected. Uploading to {s3_path}...")
+
+            bucket.upload_file(
+                bucket=config.bucket_name,
+                key=s3_path,
+                body=dataframe.to_parquet(index=False)
+            )
+
+            meta = {
+                "hash": hash_value,
+                "s3_path": s3_path,
+                "rows": dataframe.shape[0],
+                "columns": dataframe.shape[1],
+                "column_names": list(dataframe.columns),
+                "database": config.database_name,
+                "collection": config.collection_name,
+                "ingested_at": datetime.now(timezone.utc).isoformat(),
+            }
+            bucket.upload_file(
+                bucket=config.bucket_name,
+                key=meta_path,
+                body=json.dumps(meta, indent=2).encode()
+            )
+            logging.info(f"Upload complete. Metadata saved to {meta_path}")
+
+        IngestOutput = namedtuple("IngestOutput", ["s3_path", "meta_path", "data_hash"])
+        return IngestOutput(
+            s3_path=s3_path,
+            meta_path=meta_path,
+            data_hash=hash_value
+        )
+
+    except Exception as e:
+        raise MyException(e, sys)
+
+
+# @pipeline(
+#     name="data-ingestion-pipeline",
+#     description="Ingests data from MongoDB into S3, skipping upload if dataset already exists."
+# )
+# def data_ingestion_pipeline():
+#     ingest = data_ingestion_component()
+#     ingest.set_caching_options(False)
+#     use_secret_as_env(
+#         ingest,
+#         secret_name="app-secrets",
+#         secret_key_to_env={
+#             "MONGODB_URL": "MONGODB_URL",
+#             "DB_NAME": "DB_NAME",
+#             "COLLECTION_NAME": "COLLECTION_NAME",
+#             "BUCKET_NAME": "BUCKET_NAME",
+#             "AWS_ENDPOINT_URL": "AWS_ENDPOINT_URL",
+#             "AWS_ACCESS_KEY_ID": "AWS_ACCESS_KEY_ID",
+#             "AWS_SECRET_ACCESS_KEY": "AWS_SECRET_ACCESS_KEY",
+#             "REPO_OWNER": "REPO_OWNER",
+#             "REPO_NAME": "REPO_NAME",
+#             "TRACKING_URI": "TRACKING_URI",
+#         }
+#     )
+#     kubernetes.set_image_pull_policy(ingest, "Always")
+
+# if __name__ == "__main__":
+#     compiler.Compiler().compile(
+#         data_ingestion_pipeline,
+#         "data_ingestion_pipeline.yaml"
+#     )
