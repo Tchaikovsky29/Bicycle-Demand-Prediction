@@ -19,7 +19,7 @@ def data_ingestion_component() -> NamedTuple("IngestOutput", [
     import sys
     from collections import namedtuple
     from datetime import datetime, timezone
-
+    from src.utils.main_utils import generate_dataset_hash
     from src.configuration.aws_connection import buckets
     from src.entity.config_entity import DataIngestionConfig
     from src.exception import MyException
@@ -33,10 +33,11 @@ def data_ingestion_component() -> NamedTuple("IngestOutput", [
 
         logging.info("Pulling collection from MongoDB...")
         my_data = Data()
-        dataframe, hash_value = my_data.export_collection_as_dataframe(
+        dataframe = my_data.export_collection_as_dataframe(
             database_name=config.database_name,
             collection_name=config.collection_name
         )
+        hash_value = generate_dataset_hash(dataframe)
         logging.info(f"Pulled {dataframe.shape[0]} rows, hash: {hash_value}")
 
         s3_path = os.path.join(config.folder_name, f"{hash_value}.parquet")

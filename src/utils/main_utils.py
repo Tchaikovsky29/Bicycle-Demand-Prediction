@@ -1,13 +1,18 @@
 import os
 import sys
-
+import hashlib
 import numpy as np
 import dill
 import yaml
-from pandas import DataFrame
+import pandas as pd
 
 from src.exception import MyException
 from src.logger import logging
+
+def generate_dataset_hash(df: pd.DataFrame) -> str:
+        df = df.sort_index(axis=1).sort_values(by=list(df.columns))
+        data_bytes = df.to_csv(index=False).encode()
+        return hashlib.sha256(data_bytes).hexdigest()
 
 def read_yaml_file(file_path: str) -> dict:
     try:

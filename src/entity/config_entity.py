@@ -21,3 +21,12 @@ class DataIngestionConfig:
 @dataclass
 class DataValidationConfig:
     schema_file_path: str = 'config/schema.yaml'
+
+@dataclass
+class DataCleaningConfig:
+    folder_name: str = os.path.join(training_pipeline_config.data_dir, DATA_CLEANING_DIR_NAME)
+
+@dataclass
+class DataTransformationConfig:
+    folder_name: str = os.path.join(training_pipeline_config.data_dir, DATA_TRANSFORMATION_DIR_NAME)
+    test_size: float = SPLIT_TEST_SIZE

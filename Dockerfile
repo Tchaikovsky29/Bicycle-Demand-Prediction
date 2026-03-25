@@ -9,7 +9,8 @@ RUN pip install --no-cache-dir \
     pyarrow \
     boto3 \
     kfp \
-    kfp-kubernetes
+    kfp-kubernetes \
+    scikit-learn 
 
 COPY src/ /app/src/
 COPY config/ /app/config/

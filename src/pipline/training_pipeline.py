@@ -4,6 +4,8 @@ from kfp.dsl import pipeline
 from kfp.kubernetes import use_secret_as_env
 from src.components.data_ingestion import data_ingestion_component
 from src.components.data_validation import data_validation_component
+from src.components.data_cleaning import data_cleaning_component
+from src.components.data_transformation import data_transformation_component
 
 SECRET_KEYS = {
     "MONGODB_URL": "MONGODB_URL",
@@ -40,6 +42,18 @@ def training_pipeline():
         meta_path=ingest.outputs["meta_path"]
     )
     configure_task(validate)
+
+    clean = data_cleaning_component(
+        s3_path=ingest.outputs["s3_path"],
+        validation_status=validate.outputs["validation_status"],
+        message=validate.outputs["message"]
+    )
+    configure_task(clean)
+
+    transform = data_transformation_component(
+        s3_path = clean.outputs["s3_path"]
+    )
+    configure_task(transform)
 
 if __name__ == "__main__":
     client = kfp.Client(host="http://localhost:8080")

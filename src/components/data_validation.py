@@ -37,7 +37,7 @@ def data_validation_component(meta_path:str) -> NamedTuple("ValidationOutput", [
         )
 
         metadata = json.loads(metadata.decode())
-        len_check = len(_schema_config["columns"]) == metadata["columns"]
+        len_check = len(_schema_config["columns"])+1 == metadata["columns"]
         if not len_check:
             error_message += f"Expected {len(_schema_config['columns'])} columns but found {metadata['columns']} columns.\n"
         else:
