@@ -10,7 +10,9 @@ RUN pip install --no-cache-dir \
     boto3 \
     kfp \
     kfp-kubernetes \
-    scikit-learn 
+    scikit-learn \
+    mlflow \ 
+    dagshub
 
 COPY src/ /app/src/
 COPY config/ /app/config/

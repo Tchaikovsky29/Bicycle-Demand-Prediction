@@ -1,12 +1,11 @@
 from typing import NamedTuple
 from kfp.dsl import component
 
-
 @component(
     base_image="tchaikovsky29/env-base-image:latest",
 )
 def data_cleaning_component(
-    s3_path: str, validation_status:bool, message:str
+    s3_path: str, validation_status:bool, message:str, kfp_run_id: str
 ) -> NamedTuple("CleaningOutput", [
     ("s3_path", str)
 ]):
@@ -20,16 +19,18 @@ def data_cleaning_component(
     import sys
     from collections import namedtuple
     from io import BytesIO
-
+    import os
     import pandas as pd
     from src.utils.main_utils import generate_dataset_hash
     from src.configuration.aws_connection import buckets
     from src.entity.config_entity import DataCleaningConfig
     from src.exception import MyException
-    from src.logger import logging
+    from src.logger import get_logger
     from src.constants import BUCKET_NAME
 
     try:
+        os.environ["KFP_RUN_ID"] = kfp_run_id
+        logging = get_logger()
         if not validation_status:
             logging.error(f"Data validation failed: {message}")
             raise MyException(f"Data validation failed: {message}", sys)

@@ -1,28 +1,29 @@
-import hashlib
 from typing import NamedTuple
 from kfp.dsl import component
-
 
 @component(
     base_image="tchaikovsky29/env-base-image:latest",
 )
 def data_transformation_component(
-    s3_path: str,
+    s3_path: str, kfp_run_id: str
 ) -> NamedTuple("TransformationOutput", [
     ("train_path", str),
-    ("test_path", str)
+    ("test_path", str),
+    ("mlflow_run_id", str)
 ]):
     """
     Loads cleaned parquet from S3 and performs transformation steps:
       - Label encodes all columns
       - Applies sqrt transform to Rented Bike Count and Wind speed
-      - Splits into train/test sets (80/20)
+      - Splits into train/test sets
       - Uploads combined train and test parquets to S3
     """
     import sys
     from collections import namedtuple
     from io import BytesIO
-
+    import os
+    import dagshub
+    import mlflow
     import pandas as pd
     from sklearn.model_selection import train_test_split
     from sklearn.preprocessing import LabelEncoder
@@ -30,10 +31,12 @@ def data_transformation_component(
     from src.configuration.aws_connection import buckets
     from src.entity.config_entity import DataTransformationConfig
     from src.exception import MyException
-    from src.logger import logging
-    from src.constants import BUCKET_NAME
+    from src.logger import get_logger
+    from src.constants import BUCKET_NAME, REPO_OWNER, REPO_NAME
 
     try:
+        os.environ["KFP_RUN_ID"] = kfp_run_id
+        logging = get_logger()
         config = DataTransformationConfig()
         bucket = buckets()
 
@@ -50,10 +53,10 @@ def data_transformation_component(
         df = df.apply(LabelEncoder().fit_transform)
         logging.info("Label encoding complete.")
 
-        # Apply sqrt transforms
-        df["Rented Bike Count"] = df["Rented Bike Count"] ** 0.5
-        df["Wind speed"] = df["Wind speed"] ** 0.5
-        logging.info("Sqrt transforms applied to Rented Bike Count and Wind speed.")
+        # Apply transforms
+        df["Rented Bike Count"] = df["Rented Bike Count"] ** config.transformation[1]
+        df["Wind speed"] = df["Wind speed"] ** config.transformation[1]
+        logging.info("Transforms applied to Rented Bike Count and Wind speed.")
 
         # Split features and target
         X = df.drop("Rented Bike Count", axis=1)
@@ -89,12 +92,31 @@ def data_transformation_component(
         )
         logging.info("Upload complete.")
 
+        # Start MLflow run and log transformation params
+        os.environ["DAGSHUB_USER_TOKEN"] = os.getenv("DAGSHUB_USER_TOKEN")
+        dagshub.auth.add_app_token(os.getenv("DAGSHUB_USER_TOKEN"))
+        dagshub.init(repo_owner=REPO_OWNER, repo_name=REPO_NAME, mlflow=True)
+        with mlflow.start_run() as run:
+            mlflow.log_params({
+                "encoding": "LabelEncoder",
+                "target_transform": config.transformation[0],
+                "wind_speed_transform": config.transformation[0],
+                "test_size": config.test_size,
+                "random_state": 42,
+                "train_rows": len(X_train),
+                "test_rows": len(X_test),
+                "n_features": X_train.shape[1],
+            })
+            run_id = run.info.run_id
+            logging.info(f"Started MLflow run: {run_id}")
+ 
         TransformationOutput = namedtuple("TransformationOutput", [
-            "train_path", "test_path"
+            "train_path", "test_path", "mlflow_run_id"
         ])
         return TransformationOutput(
             train_path=train_path,
-            test_path=test_path
+            test_path=test_path,
+            mlflow_run_id=run_id
         )
 
     except Exception as e:

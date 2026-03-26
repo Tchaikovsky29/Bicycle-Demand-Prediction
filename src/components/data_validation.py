@@ -4,7 +4,7 @@ from kfp.dsl import component
 @component(
     base_image = "tchaikovsky29/env-base-image:latest"
 )
-def data_validation_component(meta_path:str) -> NamedTuple("ValidationOutput", [
+def data_validation_component(meta_path:str, kfp_run_id: str) -> NamedTuple("ValidationOutput", [
     ("validation_status", bool),
     ("message", str)
 ]):
@@ -14,15 +14,18 @@ def data_validation_component(meta_path:str) -> NamedTuple("ValidationOutput", [
     """
     import json
     import sys
+    import os
     from collections import namedtuple
     from src.exception import MyException
-    from src.logger import logging
+    from src.logger import get_logger
     from src.utils.main_utils import read_yaml_file
     from src.entity.config_entity import DataValidationConfig
     from src.constants import BUCKET_NAME
     from src.configuration.aws_connection import buckets
 
     try:
+        os.environ["KFP_RUN_ID"] = kfp_run_id
+        logging = get_logger()
         config = DataValidationConfig()
         bucket = buckets()
         _schema_config = read_yaml_file(file_path=config.schema_file_path)

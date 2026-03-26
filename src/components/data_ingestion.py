@@ -4,7 +4,7 @@ from kfp.dsl import component
 @component(
     base_image="tchaikovsky29/env-base-image:latest",
 )
-def data_ingestion_component() -> NamedTuple("IngestOutput", [
+def data_ingestion_component(kfp_run_id: str) -> NamedTuple("IngestOutput", [
     ("s3_path", str),
     ("meta_path", str),
     ("data_hash", str)
@@ -23,11 +23,13 @@ def data_ingestion_component() -> NamedTuple("IngestOutput", [
     from src.configuration.aws_connection import buckets
     from src.entity.config_entity import DataIngestionConfig
     from src.exception import MyException
-    from src.logger import logging
+    from src.logger import get_logger
     from src.data_access.data import Data
     from src.constants import BUCKET_NAME
 
     try:
+        os.environ["KFP_RUN_ID"] = kfp_run_id
+        logging = get_logger()
         config = DataIngestionConfig()
         bucket = buckets()
 

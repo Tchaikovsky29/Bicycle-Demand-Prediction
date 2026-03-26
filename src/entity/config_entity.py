@@ -30,3 +30,20 @@ class DataCleaningConfig:
 class DataTransformationConfig:
     folder_name: str = os.path.join(training_pipeline_config.data_dir, DATA_TRANSFORMATION_DIR_NAME)
     test_size: float = SPLIT_TEST_SIZE
+    transformation: tuple = ("sqrt", 0.5)
+
+@dataclass
+class ModelTrainingConfig:
+    folder_name: str = os.path.join(training_pipeline_config.data_dir, "models")
+    n_estimators: int = 1000
+    max_depth: int = 6
+    min_samples_split: int = 10
+    learning_rate: float = 0.1
+    loss: str = 'huber'
+
+@dataclass
+class ModelEvaluationConfig:
+    min_r2_score: float = 0.8
+
+class ModelPusherConfig:
+    folder_name: str = os.path.join(training_pipeline_config.data_dir, "models", "production")
