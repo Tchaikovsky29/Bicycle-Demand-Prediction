@@ -10,6 +10,7 @@ def model_pusher_component(
     test_path: str,
     new_model_r2: float,
     is_model_accepted: bool,
+    mlflow_run_id: str,
     kfp_run_id: str
 ) -> NamedTuple("PusherOutput", [
     ("pushed", bool),
@@ -25,9 +26,11 @@ def model_pusher_component(
     from collections import namedtuple
     from io import BytesIO
     import os
-
-    import joblib
+    import json
+    from datetime import datetime, timezone
+    import onnxruntime as rt
     import pandas as pd
+    import numpy as np
     from sklearn.metrics import r2_score
 
     from src.configuration.aws_connection import buckets
@@ -42,7 +45,7 @@ def model_pusher_component(
         config = ModelPusherConfig()
         bucket = buckets()
 
-        prod_model_path = os.path.join(config.folder_name, "model.pkl")
+        prod_model_path = os.path.join(config.folder_name,"1", "model.onnx")
         prod_r2 = 0.0
 
         # Check if a production model exists
@@ -76,8 +79,10 @@ def model_pusher_component(
                 key=prod_model_path,
                 as_object=True
             )
-            prod_model = joblib.load(BytesIO(prod_bytes))
-            prod_r2 = float(r2_score(y_test, prod_model.predict(X_test)))
+            session = rt.InferenceSession(prod_bytes)
+            input_name = session.get_inputs()[0].name
+            prod_preds = session.run(None, {input_name: X_test.values.astype(np.float32)})[0].flatten()
+            prod_r2 = float(r2_score(y_test, prod_preds))
             logging.info(f"Production model R2: {prod_r2:.4f} | New model R2: {new_model_r2:.4f}")
 
             pushed = new_model_r2 > prod_r2
@@ -96,6 +101,15 @@ def model_pusher_component(
                 bucket=BUCKET_NAME,
                 key=prod_model_path,
                 body=new_model_bytes
+            )
+            run_info = {
+                "mlflow_run_id": mlflow_run_id,
+                "pushed_at": datetime.now(timezone.utc).isoformat(),
+            }
+            bucket.upload_file(
+                bucket=BUCKET_NAME,
+                key=config.folder_name + "/run_info.json",
+                body=json.dumps(run_info, indent=2).encode()
             )
             logging.info(f"New model pushed to production at {prod_model_path}")
             

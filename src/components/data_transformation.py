@@ -21,13 +21,14 @@ def data_transformation_component(
     import sys
     from collections import namedtuple
     from io import BytesIO
+    import pickle
     import os
     import dagshub
     import mlflow
     import pandas as pd
     from sklearn.model_selection import train_test_split
     from sklearn.preprocessing import LabelEncoder
-    from src.utils.main_utils import generate_dataset_hash
+    from src.utils.main_utils import generate_dataset_hash, read_yaml_file
     from src.configuration.aws_connection import buckets
     from src.entity.config_entity import DataTransformationConfig
     from src.exception import MyException
@@ -49,9 +50,15 @@ def data_transformation_component(
         df = pd.read_parquet(BytesIO(clean_bytes))
         logging.info(f"Loaded cleaned dataset: {df.shape[0]} rows, {df.shape[1]} columns")
 
-        # Label encode all columns
-        df = df.apply(LabelEncoder().fit_transform)
-        logging.info("Label encoding complete.")
+        encoders = {}
+        schema = read_yaml_file(config.schema_file_path)
+        for col in schema["encoding_columns"]:
+            le = LabelEncoder()
+            df[col] = le.fit_transform(df[col])
+            encoders[col] = le
+        
+        with open("/tmp/encoders.pkl", "wb") as f:
+            pickle.dump(encoders, f)
 
         # Apply transforms
         df["Rented Bike Count"] = df["Rented Bike Count"] ** config.transformation[1]
@@ -107,6 +114,7 @@ def data_transformation_component(
                 "test_rows": len(X_test),
                 "n_features": X_train.shape[1],
             })
+            mlflow.log_artifact("/tmp/encoders.pkl", artifact_path="encoders")
             run_id = run.info.run_id
             logging.info(f"Started MLflow run: {run_id}")
  

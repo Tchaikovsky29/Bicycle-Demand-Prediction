@@ -23,7 +23,8 @@ def model_training_component(
     from io import BytesIO
     import os
     import dagshub
-    import joblib
+    from skl2onnx import convert_sklearn
+    from skl2onnx.common.data_types import FloatTensorType
     import mlflow
     import mlflow.sklearn
     import pandas as pd
@@ -65,11 +66,20 @@ def model_training_component(
         model.fit(X_train, y_train)
         logging.info("Model training complete.")
 
+        n_features = X_train.shape[1]
+        initial_type = [("float_input", FloatTensorType([None, n_features]))]
+        onnx_model = convert_sklearn(
+            model,
+            initial_types=initial_type,
+            target_opset=17  # opset 17 corresponds to IR version 9
+        )
+        logging.info("Model converted to ONNX format.")
+
         # Serialize and upload model to S3
         model_buffer = BytesIO()
-        joblib.dump(model, model_buffer)
+        model_buffer.write(onnx_model.SerializeToString())
         model_buffer.seek(0)
-        model_s3_path = f"{config.folder_name}/{mlflow_run_id}/model.pkl"
+        model_s3_path = f"{config.folder_name}/{mlflow_run_id}/model.onnx"
         bucket.upload_file(
             bucket=BUCKET_NAME,
             key=model_s3_path,
@@ -83,6 +93,7 @@ def model_training_component(
         dagshub.init(repo_owner=REPO_OWNER, repo_name=REPO_NAME, mlflow=True)
         with mlflow.start_run(run_id=mlflow_run_id):
             mlflow.log_params(gbr_params)
+            mlflow.log_param("kfp_run_id", kfp_run_id)
             mlflow.sklearn.log_model(model, "model")
             logging.info(f"Logged model and params to MLflow run {mlflow_run_id}")
 

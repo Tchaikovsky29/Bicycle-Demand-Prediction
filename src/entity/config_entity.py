@@ -29,6 +29,7 @@ class DataCleaningConfig:
 @dataclass
 class DataTransformationConfig:
     folder_name: str = os.path.join(training_pipeline_config.data_dir, DATA_TRANSFORMATION_DIR_NAME)
+    schema_file_path: str = 'config/schema.yaml'
     test_size: float = SPLIT_TEST_SIZE
     transformation: tuple = ("sqrt", 0.5)
 
@@ -46,4 +47,4 @@ class ModelEvaluationConfig:
     min_r2_score: float = 0.8
 
 class ModelPusherConfig:
-    folder_name: str = os.path.join(training_pipeline_config.data_dir, "models", "production")
+    folder_name: str = os.path.join(training_pipeline_config.data_dir, "models", "serving", "bicycle-demand-predictor")

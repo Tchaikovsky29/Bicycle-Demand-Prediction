@@ -13,4 +13,9 @@ columns:
   - Holiday
   - Functioning Day
 
+encoding_columns:
+  - Seasons
+  - Holiday
+  - Year
+
 target_column: Rented Bike Count

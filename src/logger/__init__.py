@@ -110,6 +110,7 @@ def get_logger():
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("mlflow").setLevel(logging.WARNING)
+    logging.getLogger("skl2onnx").setLevel(logging.WARNING)
 
     _logger_configured = True
     return logger

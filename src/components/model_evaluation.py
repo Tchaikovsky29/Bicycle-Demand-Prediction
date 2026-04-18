@@ -26,7 +26,7 @@ def model_evaluation_component(
     from io import BytesIO
     import os
     import dagshub
-    import joblib
+    import onnxruntime as rt
     import mlflow
     import numpy as np
     import pandas as pd
@@ -63,11 +63,12 @@ def model_evaluation_component(
             key=model_s3_path,
             as_object=True
         )
-        model = joblib.load(BytesIO(model_bytes))
+        session = rt.InferenceSession(model_bytes)
         logging.info("Model loaded successfully.")
 
         # Evaluate
-        y_pred = model.predict(X_test)
+        input_name = session.get_inputs()[0].name
+        y_pred = session.run(None, {input_name: X_test.values.astype(np.float32)})[0].flatten()
         rmse = float(np.sqrt(mean_squared_error(y_test, y_pred)))
         mae = float(mean_absolute_error(y_test, y_pred))
         r2 = float(r2_score(y_test, y_pred))

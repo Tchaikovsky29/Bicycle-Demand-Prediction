@@ -12,7 +12,9 @@ RUN pip install --no-cache-dir \
     kfp-kubernetes \
     scikit-learn \
     mlflow \ 
-    dagshub
+    dagshub \
+    skl2onnx \
+    onnxruntime
 
 COPY src/ /app/src/
 COPY config/ /app/config/
