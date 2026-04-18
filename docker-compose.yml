@@ -1,0 +1,34 @@
+services:
+  minio:
+    image: minio/minio
+    container_name: Bicycle-Demand-Prediction
+    ports:
+      - "0.0.0.0:9010:9000"
+      - "0.0.0.0:9011:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  minio_init:
+    image: minio/mc
+    container_name: Bicycle-Demand-Prediction-Init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 minioadmin minioadmin &&
+      mc mb --ignore-existing local/bicycle-demand-prediction-bucket &&
+      echo 'Bucket created successfully'
+      "
+
+volumes:
+  minio_data:

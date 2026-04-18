@@ -1,0 +1,21 @@
+columns:
+  - Date
+  - Hour
+  - Temperature
+  - Humidity
+  - Wind speed
+  - Visibility
+  - Dew point temperature
+  - Solar Radiation
+  - Rainfall
+  - Snowfall
+  - Seasons
+  - Holiday
+  - Functioning Day
+
+encoding_columns:
+  - Seasons
+  - Holiday
+  - Year
+
+target_column: Rented Bike Count
