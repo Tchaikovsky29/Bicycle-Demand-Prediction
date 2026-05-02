@@ -73,7 +73,6 @@ class S3LogHandler(logging.Handler):
         self.buffer.close()
         super().close()
 
-
 def get_logger():
     global _logger_configured
     if _logger_configured:
