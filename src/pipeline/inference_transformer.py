@@ -19,7 +19,6 @@ FEATURE_ORDER = [
     "Day", "Month", "Year"
 ]
 
-
 class BicycleDemandTransformer(kserve.Model):
     def __init__(self, name: str, predictor_host: str, predictor_protocol: str):
         super().__init__(name)
