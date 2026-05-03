@@ -46,13 +46,16 @@ pipeline {
             agent { label 'kaniko' }
             steps {
                 container('kaniko') {
-                    sh """
-                        /kaniko/executor \
-                            --context="\${WORKSPACE}" \
-                            --dockerfile="\${WORKSPACE}/${PIPELINE_DOCKERFILE}" \
-                            --destination="\${PIPELINE_IMAGE}:\${GIT_COMMIT.take(7)}" \
-                            --destination="\${PIPELINE_IMAGE}:latest"
-                    """
+                    script {
+                        def shortCommit = env.GIT_COMMIT.take(7)
+                        sh """
+                            /kaniko/executor \
+                                --context="${env.WORKSPACE}" \
+                                --dockerfile="${env.WORKSPACE}/${env.PIPELINE_DOCKERFILE}" \
+                                --destination="${env.PIPELINE_IMAGE}:${shortCommit}" \
+                                --destination="${env.PIPELINE_IMAGE}:latest"
+                        """
+                    }
                 }
             }
         }
@@ -62,13 +65,16 @@ pipeline {
             agent { label 'kaniko' }
             steps {
                 container('kaniko') {
-                    sh """
-                        /kaniko/executor \
-                            --context="\${WORKSPACE}" \
-                            --dockerfile="\${WORKSPACE}/${ROOT_DOCKERFILE}" \
-                            --destination="\${ROOT_IMAGE}:\${GIT_COMMIT.take(7)}" \
-                            --destination="\${ROOT_IMAGE}:latest"
-                    """
+                    script {
+                        def shortCommit = env.GIT_COMMIT.take(7)
+                        sh """
+                            /kaniko/executor \
+                                --context="${env.WORKSPACE}" \
+                                --dockerfile="${env.WORKSPACE}/${env.ROOT_DOCKERFILE}" \
+                                --destination="${env.ROOT_IMAGE}:${shortCommit}" \
+                                --destination="${env.ROOT_IMAGE}:latest"
+                        """
+                    }
                 }
             }
         }
