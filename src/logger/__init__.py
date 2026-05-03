@@ -26,6 +26,7 @@ class S3LogHandler(logging.Handler):
     the handler is flushed — i.e. at the end of the component run.
     """
 
+
     def __init__(self, log_key: str):
         super().__init__()
         self.buffer = StringIO()
