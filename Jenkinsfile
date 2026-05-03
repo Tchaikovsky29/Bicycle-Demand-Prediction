@@ -48,10 +48,10 @@ pipeline {
                 container('kaniko') {
                     sh """
                         /kaniko/executor \
-                            --context=${WORKSPACE} \
-                            --dockerfile=${WORKSPACE}/${PIPELINE_DOCKERFILE} \
-                            --destination=${PIPELINE_IMAGE}:${GIT_COMMIT.take(7)} \
-                            --destination=${PIPELINE_IMAGE}:latest
+                            --context="\${WORKSPACE}" \
+                            --dockerfile="\${WORKSPACE}/${PIPELINE_DOCKERFILE}" \
+                            --destination="\${PIPELINE_IMAGE}:\${GIT_COMMIT.take(7)}" \
+                            --destination="\${PIPELINE_IMAGE}:latest"
                     """
                 }
             }
@@ -64,10 +64,10 @@ pipeline {
                 container('kaniko') {
                     sh """
                         /kaniko/executor \
-                            --context=${WORKSPACE} \
-                            --dockerfile=${WORKSPACE}/${ROOT_DOCKERFILE} \
-                            --destination=${ROOT_IMAGE}:${GIT_COMMIT.take(7)} \
-                            --destination=${ROOT_IMAGE}:latest
+                            --context="\${WORKSPACE}" \
+                            --dockerfile="\${WORKSPACE}/${ROOT_DOCKERFILE}" \
+                            --destination="\${ROOT_IMAGE}:\${GIT_COMMIT.take(7)}" \
+                            --destination="\${ROOT_IMAGE}:latest"
                     """
                 }
             }
