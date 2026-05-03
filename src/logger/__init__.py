@@ -6,7 +6,6 @@ from datetime import datetime
 from src.constants import BUCKET_NAME
 from io import StringIO
 
-
 # ─────────────────────────────────────────────
 # Constants
 # ─────────────────────────────────────────────
