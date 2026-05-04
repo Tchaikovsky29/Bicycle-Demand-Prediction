@@ -93,8 +93,9 @@ if __name__ == "__main__":
         pipeline_id = client.get_pipeline_id("training-pipeline")
         if pipeline_id:
             client.delete_pipeline(pipeline_id)
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Could not delete existing pipeline: {e}")
+
     client.upload_pipeline_from_pipeline_func(
         training_pipeline,
         pipeline_name="training-pipeline"
