@@ -88,7 +88,13 @@ def training_pipeline():
     configure_task(pusher)
 
 if __name__ == "__main__":
-    client = kfp.Client(host="http://localhost:8080")
+    client = kfp.Client(host="http://ml-pipeline.kubeflow.svc.cluster.local:8888")
+    try:
+        pipeline_id = client.get_pipeline_id("training-pipeline")
+        if pipeline_id:
+            client.delete_pipeline(pipeline_id)
+    except Exception:
+        pass
     client.upload_pipeline_from_pipeline_func(
         training_pipeline,
         pipeline_name="training-pipeline"
