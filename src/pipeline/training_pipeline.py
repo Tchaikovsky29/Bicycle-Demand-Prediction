@@ -89,9 +89,15 @@ def training_pipeline():
 
 if __name__ == "__main__":
     client = kfp.Client(host="http://ml-pipeline.kubeflow.svc.cluster.local:8888")
+    
     try:
         pipeline_id = client.get_pipeline_id("training-pipeline")
         if pipeline_id:
+            # Delete all versions first, then the pipeline
+            versions = client.list_pipeline_versions(pipeline_id, page_size=100)
+            if versions and versions.pipeline_versions:
+                for version in versions.pipeline_versions:
+                    client.delete_pipeline_version(pipeline_id, version.pipeline_version_id)
             client.delete_pipeline(pipeline_id)
     except Exception as e:
         print(f"Could not delete existing pipeline: {e}")
