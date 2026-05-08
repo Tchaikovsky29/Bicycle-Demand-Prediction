@@ -71,7 +71,7 @@ def model_training_component(
         onnx_model = convert_sklearn(
             model,
             initial_types=initial_type,
-            target_opset=17  # opset 17 corresponds to IR version 9
+            target_opset=17  
         )
         logging.info("Model converted to ONNX format.")
 

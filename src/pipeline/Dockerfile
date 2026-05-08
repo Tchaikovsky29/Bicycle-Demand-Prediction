@@ -7,8 +7,7 @@ RUN pip install --no-cache-dir \
     scikit-learn \
     numpy \
     pandas \
-    boto3 \
-    mlflow
+    boto3
 
 COPY inference_transformer.py /app/inference_transformer.py
 

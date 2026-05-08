@@ -9,6 +9,7 @@ def data_transformation_component(
 ) -> NamedTuple("TransformationOutput", [
     ("train_path", str),
     ("test_path", str),
+    ("encoders_path", str),
     ("mlflow_run_id", str)
 ]):
     """
@@ -79,6 +80,7 @@ def data_transformation_component(
         base_path = f"{config.folder_name}/{transform_hash}"
         train_path = f"{base_path}/train.parquet"
         test_path = f"{base_path}/test.parquet"
+        encoders_path = f"{base_path}/encoders.pkl"
 
         # Combine X and y for storage
         train_df = X_train.copy()
@@ -99,6 +101,14 @@ def data_transformation_component(
         )
         logging.info("Upload complete.")
 
+        logging.info(f"Uploading encoders to {base_path}...")
+        bucket.upload_file(
+            bucket=BUCKET_NAME,
+            key=encoders_path,
+            file_path="/tmp/encoders.pkl"
+        )
+        logging.info("Encoders upload complete.")
+
         # Start MLflow run and log transformation params
         os.environ["DAGSHUB_USER_TOKEN"] = os.getenv("DAGSHUB_USER_TOKEN")
         dagshub.auth.add_app_token(os.getenv("DAGSHUB_USER_TOKEN"))
@@ -113,18 +123,19 @@ def data_transformation_component(
                 "train_rows": len(X_train),
                 "test_rows": len(X_test),
                 "n_features": X_train.shape[1],
+                "dataset_hash": transform_hash
             })
-            mlflow.log_artifact("/tmp/encoders.pkl", artifact_path="encoders")
             run_id = run.info.run_id
             logging.info(f"Started MLflow run: {run_id}")
  
         TransformationOutput = namedtuple("TransformationOutput", [
-            "train_path", "test_path", "mlflow_run_id"
+            "train_path", "test_path", "mlflow_run_id", "encoders_path"
         ])
         return TransformationOutput(
             train_path=train_path,
             test_path=test_path,
-            mlflow_run_id=run_id
+            mlflow_run_id=run_id,
+            encoders_path=encoders_path
         )
 
     except Exception as e:
