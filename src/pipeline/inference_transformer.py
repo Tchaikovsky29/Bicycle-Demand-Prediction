@@ -6,7 +6,6 @@ import pickle
 from typing import Dict
 
 import boto3
-import mlflow
 import httpx
 import kserve
 
@@ -29,7 +28,7 @@ class BicycleDemandTransformer(kserve.Model):
         self.load()
 
     def load(self):
-        logger.info("Loading run_info from MinIO...")
+        logger.info("Loading encoders from MinIO...")
         s3 = boto3.client(
             "s3",
             endpoint_url=os.environ["AWS_ENDPOINT_URL"],
@@ -44,19 +43,14 @@ class BicycleDemandTransformer(kserve.Model):
             Key="data/models/serving/bicycle-demand-predictor/run_info.json"
         )
         run_info = json.loads(run_info_obj["Body"].read())
-        run_id = run_info["mlflow_run_id"]
-        logger.info(f"Using MLflow run ID: {run_id}")
+        encoders_path = run_info["encoders_path"]
+        logger.info(f"Loading encoders from {encoders_path}...")
 
-        os.environ["MLFLOW_TRACKING_USERNAME"] = os.environ["REPO_OWNER"]
-        os.environ["MLFLOW_TRACKING_PASSWORD"] = os.environ["DAGSHUB_USER_TOKEN"]
-        mlflow.set_tracking_uri(os.environ["TRACKING_URI"])
-
-        local_path = mlflow.artifacts.download_artifacts(
-            run_id=run_id,
-            artifact_path="encoders/encoders.pkl"
+        encoders_obj = s3.get_object(
+            Bucket=bucket,
+            Key=encoders_path
         )
-        with open(local_path, "rb") as f:
-            self.encoders = pickle.load(f)
+        self.encoders = pickle.loads(encoders_obj["Body"].read())
 
         logger.info(f"Loaded encoders for: {list(self.encoders.keys())}")
         self.ready = True

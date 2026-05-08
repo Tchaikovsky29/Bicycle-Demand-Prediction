@@ -11,6 +11,7 @@ def model_pusher_component(
     new_model_r2: float,
     is_model_accepted: bool,
     mlflow_run_id: str,
+    encoders_path: str,
     kfp_run_id: str
 ) -> NamedTuple("PusherOutput", [
     ("pushed", bool),
@@ -104,6 +105,7 @@ def model_pusher_component(
             )
             run_info = {
                 "mlflow_run_id": mlflow_run_id,
+                "encoders_path": encoders_path,
                 "pushed_at": datetime.now(timezone.utc).isoformat(),
             }
             bucket.upload_file(

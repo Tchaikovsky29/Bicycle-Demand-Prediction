@@ -83,6 +83,7 @@ def training_pipeline():
         model_s3_path=trainer.outputs["model_s3_path"],
         new_model_r2=evaluate.outputs["r2"],
         mlflow_run_id=trainer.outputs["mlflow_run_id"],
+        encoders_path=transform.outputs["encoders_path"],
         kfp_run_id=dsl.PIPELINE_JOB_ID_PLACEHOLDER
     )
     configure_task(pusher)
