@@ -4,7 +4,7 @@ pipeline {
     environment {
         KFP_HOST            = "http://ml-pipeline.kubeflow.svc.cluster.local:8888"
         TRAINING_SCRIPT     = "src/pipeline/training_pipeline.py"
-
+        GIT_SSL_NO_VERIFY = 'true'
         // Files that should NOT trigger this job
         PIPELINE_TRIGGER    = "src/pipeline/inference_transformer.py"
         PIPELINE_DOCKERFILE = "src/pipeline/Dockerfile"
