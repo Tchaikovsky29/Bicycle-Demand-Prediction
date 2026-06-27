@@ -1,6 +1,6 @@
 pipeline {
     agent any
-
+    
     environment {
         DOCKERHUB_USERNAME = "tchaikovsky29"
         ROOT_IMAGE         = "${DOCKERHUB_USERNAME}/env-base-image"
@@ -13,30 +13,31 @@ pipeline {
     }
 
     stages {
+        stage('Checkout') {
+            steps {
+                sshagent(['Github-ssh']) {
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: '*/main']],
+                        userRemoteConfigs: [[
+                            url: 'git@github.com:Tchaikovsky29/Bicycle-Demand-Prediction.git',
+                            credentialsId: 'Github-ssh'
+                        ]]
+                    ])
+                }
+            }
+        }
 
         stage('Detect Changes') {
             steps {
-                script {
-                    def changedFiles = sh(
-                        script: "git diff --name-only HEAD~1 HEAD",
-                        returnStdout: true
-                    ).trim().split('\n') as List
-
-                    echo "Changed files:\n${changedFiles.join('\n')}"
-
-                    def pipelineExcludes = [env.PIPELINE_TRIGGER, env.PIPELINE_DOCKERFILE]
-
-                    env.BUILD_PIPELINE = changedFiles.any { f ->
-                        f == env.PIPELINE_TRIGGER || f == env.PIPELINE_DOCKERFILE
-                    } ? 'true' : 'false'
-
-                    env.BUILD_ROOT = changedFiles.any { f ->
-                        f == env.ROOT_DOCKERFILE ||
-                        (f.startsWith(env.ROOT_SRC_DIR) && !(f in pipelineExcludes))
-                    } ? 'true' : 'false'
-
-                    echo "Build pipeline image : ${env.BUILD_PIPELINE}"
-                    echo "Build root image     : ${env.BUILD_ROOT}"
+                sshagent(['Github-ssh']) {
+                    script {
+                        def changedFiles = sh(
+                            script: "git diff --name-only HEAD~1 HEAD",
+                            returnStdout: true
+                        ).trim().split('\n') as List
+                        // rest of your script...
+                    }
                 }
             }
         }
