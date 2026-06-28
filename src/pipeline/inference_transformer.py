@@ -99,7 +99,7 @@ class BicycleDemandTransformer(kserve.Model):
 
     async def predict(self, payload: Dict, headers: Dict[str, str] = None) -> Dict:
         # Call predictor in v2 format
-        features = payload["instances"][0]  # already preprocessed list of floats
+        features = payload["instances"][0]
         
         v2_payload = {
             "inputs": [{
