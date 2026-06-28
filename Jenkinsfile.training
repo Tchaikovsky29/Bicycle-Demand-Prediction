@@ -50,16 +50,16 @@ pipeline {
             agent {
                 kubernetes {
                     yaml """
-                        apiVersion: v1
-                        kind: Pod
-                        spec:
-                        containers:
-                        - name: training
-                            image: tchaikovsky29/env-base-image:latest
-                            imagePullPolicy: Always
-                            command:
-                            - cat
-                            tty: true
+apiVersion: v1
+kind: Pod
+spec:
+containers:
+- name: training
+    image: tchaikovsky29/env-base-image:latest
+    imagePullPolicy: Always
+    command:
+    - cat
+    tty: true
 """
                 }
             }
