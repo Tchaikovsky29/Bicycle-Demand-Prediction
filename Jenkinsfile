@@ -13,32 +13,31 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                sshagent(['Github-ssh']) {
-                    checkout([
-                        $class: 'GitSCM',
-                        branches: [[name: '*/main']],
-                        userRemoteConfigs: [[
-                            url: 'git@github.com:Tchaikovsky29/Bicycle-Demand-Prediction.git',
-                            credentialsId: 'Github-ssh'
-                        ]]
-                    ])
-                }
-            }
-        }
+        // stage('Checkout') {
+        //     steps {
+        //         sshagent(['Github-ssh']) {
+        //             checkout([
+        //                 $class: 'GitSCM',
+        //                 branches: [[name: '*/main']],
+        //                 userRemoteConfigs: [[
+        //                     url: 'git@github.com:Tchaikovsky29/Bicycle-Demand-Prediction.git',
+        //                     credentialsId: 'Github-ssh'
+        //                 ]]
+        //             ])
+        //         }
+        //     }
+        // }
 
         stage('Detect Changes') {
             steps {
-                sshagent(['Github-ssh']) {
+                // sshagent(['Github-ssh']) {
                     script {
                         def changedFiles = sh(
                             script: "git diff --name-only HEAD~1 HEAD",
                             returnStdout: true
                         ).trim().split('\n') as List
-                        // rest of your script...
                     }
-                }
+                // }
             }
         }
 
