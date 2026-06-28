@@ -9,7 +9,7 @@ RUN pip install --no-cache-dir \
     pandas \
     boto3
 
-COPY inference_transformer.py /app/inference_transformer.py
+COPY src/pipeline/inference_transformer.py /app/inference_transformer.py
 
 ENV PYTHONPATH="/app"
 
