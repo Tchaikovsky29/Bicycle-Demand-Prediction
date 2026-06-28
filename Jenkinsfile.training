@@ -60,7 +60,7 @@ pipeline {
                             command:
                             - cat
                             tty: true
-                        """
+"""
                 }
             }
             steps {
