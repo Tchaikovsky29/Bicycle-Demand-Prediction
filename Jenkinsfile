@@ -55,7 +55,9 @@ pipeline {
                                 --context="${env.WORKSPACE}" \
                                 --dockerfile="${env.WORKSPACE}/${env.PIPELINE_DOCKERFILE}" \
                                 --destination="${env.PIPELINE_IMAGE}:${shortCommit}" \
-                                --destination="${env.PIPELINE_IMAGE}:latest"
+                                --destination="${env.PIPELINE_IMAGE}:latest" \
+                                --cache=true \
+                                --cache-repo="${env.PIPELINE_IMAGE}-cache"
                         """
                     }
                 }
@@ -74,7 +76,9 @@ pipeline {
                                 --context="${env.WORKSPACE}" \
                                 --dockerfile="${env.WORKSPACE}/${env.ROOT_DOCKERFILE}" \
                                 --destination="${env.ROOT_IMAGE}:${shortCommit}" \
-                                --destination="${env.ROOT_IMAGE}:latest"
+                                --destination="${env.ROOT_IMAGE}:latest" \
+                                --cache=true \
+                                --cache-repo="${env.ROOT_IMAGE}-cache"
                         """
                     }
                 }
