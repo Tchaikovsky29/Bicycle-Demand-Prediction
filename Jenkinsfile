@@ -8,6 +8,7 @@ pipeline {
         GIT_SSL_NO_VERIFY = 'true'
         PIPELINE_DOCKERFILE = "src/pipeline/Dockerfile"
         PIPELINE_TRIGGER    = "src/pipeline/inference_transformer.py"
+        PIPELINE_DIRECTORY  = "src/pipeline/"
         ROOT_SRC_DIR        = "src/"
         ROOT_DOCKERFILE     = "Dockerfile"
     }
@@ -31,7 +32,7 @@ pipeline {
                     } ? 'true' : 'false'
 
                     env.BUILD_ROOT = changedFiles.any { file ->
-                        (file.startsWith(env.ROOT_SRC_DIR) && !pipelineFiles.contains(file)) ||
+                        (file.startsWith(env.ROOT_SRC_DIR) && !file.startsWith(env.PIPELINE_DIRECTORY)) ||
                         file.startsWith("config/")                                             ||
                         file == env.ROOT_DOCKERFILE
                     } ? 'true' : 'false'

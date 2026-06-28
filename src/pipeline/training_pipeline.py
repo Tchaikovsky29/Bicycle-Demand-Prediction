@@ -37,6 +37,7 @@ def configure_task(task):
     name="training-pipeline",
     description="Runs the training pipeline for bicycle demand prediction"
 )
+
 def training_pipeline():
     ingest = data_ingestion_component(kfp_run_id=dsl.PIPELINE_JOB_ID_PLACEHOLDER)
     ingest.set_caching_options(False)
