@@ -4,7 +4,7 @@ pipeline {
     environment {
         DOCKERHUB_USERNAME = "tchaikovsky29"
         ROOT_IMAGE         = "${DOCKERHUB_USERNAME}/env-base-image"
-        PIPELINE_IMAGE     = "${DOCKERHUB_USERNAME}/my-app-pipeline"
+        PIPELINE_IMAGE     = "${DOCKERHUB_USERNAME}/inference_transformer"
         GIT_SSL_NO_VERIFY = 'true'
         PIPELINE_DOCKERFILE = "src/pipeline/Dockerfile"
         PIPELINE_TRIGGER    = "src/pipeline/inference_transformer.py"
@@ -13,31 +13,33 @@ pipeline {
     }
 
     stages {
-        // stage('Checkout') {
-        //     steps {
-        //         sshagent(['Github-ssh']) {
-        //             checkout([
-        //                 $class: 'GitSCM',
-        //                 branches: [[name: '*/main']],
-        //                 userRemoteConfigs: [[
-        //                     url: 'git@github.com:Tchaikovsky29/Bicycle-Demand-Prediction.git',
-        //                     credentialsId: 'Github-ssh'
-        //                 ]]
-        //             ])
-        //         }
-        //     }
-        // }
-
         stage('Detect Changes') {
             steps {
-                // sshagent(['Github-ssh']) {
-                    script {
-                        def changedFiles = sh(
-                            script: "git diff --name-only HEAD~1 HEAD",
-                            returnStdout: true
-                        ).trim().split('\n') as List
-                    }
-                // }
+                script {
+                    def changedFiles = sh(
+                        script: "git diff --name-only HEAD~1 HEAD 2>/dev/null || echo ''",
+                        returnStdout: true
+                    ).trim().split('\n') as List
+
+                    def pipelineFiles = [
+                        env.PIPELINE_TRIGGER,
+                        env.PIPELINE_DOCKERFILE
+                    ]
+
+                    env.BUILD_PIPELINE = changedFiles.any { file ->
+                        pipelineFiles.contains(file)
+                    } ? 'true' : 'false'
+
+                    env.BUILD_ROOT = changedFiles.any { file ->
+                        (file.startsWith(env.ROOT_SRC_DIR) && !pipelineFiles.contains(file)) ||
+                        file.startsWith("config/")                                             ||
+                        file == env.ROOT_DOCKERFILE
+                    } ? 'true' : 'false'
+
+                    echo "Changed files: ${changedFiles}"
+                    echo "BUILD_PIPELINE=${env.BUILD_PIPELINE}"
+                    echo "BUILD_ROOT=${env.BUILD_ROOT}"
+                }
             }
         }
 
