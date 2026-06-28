@@ -119,7 +119,6 @@ class BicycleDemandTransformer(kserve.Model):
             response.raise_for_status()
             result = response.json()
         
-        # Extract prediction from v2 response
         raw = result["outputs"][0]["data"][0]
         return {"predictions": [raw]}
 

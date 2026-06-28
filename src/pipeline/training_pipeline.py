@@ -89,7 +89,7 @@ def training_pipeline():
     configure_task(pusher)
 
 if __name__ == "__main__":
-    client = kfp.Client(host="http://ml-pipeline.kubeflow.svc.cluster.local:8888")
+    client = kfp.Client(host="http://localhost:8080")
     
     try:
         pipeline_id = client.get_pipeline_id("training-pipeline")

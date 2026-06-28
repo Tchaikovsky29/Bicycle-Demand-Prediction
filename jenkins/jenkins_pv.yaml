@@ -12,6 +12,7 @@ spec:
     - ReadWriteOnce
   hostPath:
     path: "/mnt/data"
+    type: DirectoryOrCreate
 # apiVersion: v1
 # kind: PersistentVolume
 # metadata:

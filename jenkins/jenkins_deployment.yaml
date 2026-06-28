@@ -21,10 +21,26 @@ spec:
         app: jenkins
     spec:
       serviceAccountName: jenkins
+      initContainers:
+      - name: init-permissions
+        image: busybox
+        securityContext:
+          runAsUser: 0
+        command:
+        - sh
+        - -c
+        - |
+          chmod -R 0777 /var/jenkins_home || true
+        volumeMounts:
+        - name: jenkins
+          mountPath: /var/jenkins_home
       containers:
       - name: jenkins
         image: jenkins/jenkins:2.555.1-lts-jdk21   # updated: JDK17 dropped, pinned version
         imagePullPolicy: Always
+        securityContext:
+          runAsUser: 1000
+          runAsGroup: 1000
         env:
         - name: JAVA_OPTS
           value: -Xmx2048m -Dhudson.slaves.NodeProvisioner.MARGIN=50 -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85
