@@ -1,22 +1,15 @@
 pipeline {
     agent none
-
     environment {
         KFP_HOST            = "http://ml-pipeline.kubeflow.svc.cluster.local:8888"
         TRAINING_SCRIPT     = "src/pipeline/training_pipeline.py"
         GIT_SSL_NO_VERIFY = 'true'
-        // Files that should NOT trigger this job
         PIPELINE_TRIGGER    = "src/pipeline/inference_transformer.py"
         PIPELINE_DOCKERFILE = "src/pipeline/Dockerfile"
-
-        // Directories that should trigger this job
         SRC_DIR             = "src/"
         CONFIG_DIR          = "config/"
     }
-
     stages {
-
-        // ── 1. Detect what changed ────────────────────────────────────────────
         stage('Detect Changes') {
             agent any
             steps {
@@ -25,36 +18,29 @@ pipeline {
                         script: "git diff --name-only HEAD~1 HEAD",
                         returnStdout: true
                     ).trim().split('\n') as List
-
                     echo "Changed files:\n${changedFiles.join('\n')}"
-
                     def excludedFiles = [env.PIPELINE_TRIGGER, env.PIPELINE_DOCKERFILE]
-
-                    // Trigger if:
-                    // - any file under src/ changed EXCEPT inference_transformer.py
-                    //   and src/pipeline/Dockerfile
-                    // - OR any file under config/ changed
                     env.RUN_TRAINING = changedFiles.any { f ->
                         (f.startsWith(env.SRC_DIR) && !(f in excludedFiles)) ||
                         f.startsWith(env.CONFIG_DIR)
                     } ? 'true' : 'false'
-
                     echo "Run training pipeline : ${env.RUN_TRAINING}"
                 }
             }
         }
-
-        // ── 2. Upload pipeline to KFP ─────────────────────────────────────────
         stage('Upload Training Pipeline to KFP') {
-            when { expression { env.RUN_TRAINING == 'true' } }
+            when {
+                beforeAgent true
+                expression { env.RUN_TRAINING == 'true' }
+            }
             agent {
                 kubernetes {
-                    yaml """
+                    yaml """\
 apiVersion: v1
 kind: Pod
 spec:
-containers:
-- name: training
+  containers:
+  - name: training
     image: tchaikovsky29/env-base-image:latest
     imagePullPolicy: Always
     command:
@@ -72,17 +58,17 @@ containers:
                 }
             }
         }
-
-        // ── 3. Skip notice ────────────────────────────────────────────────────
         stage('No Training Triggered') {
-            when { expression { env.RUN_TRAINING == 'false' } }
+            when {
+                beforeAgent true
+                expression { env.RUN_TRAINING == 'false' }
+            }
             agent none
             steps {
                 echo 'No relevant files changed. Skipping training pipeline upload.'
             }
         }
     }
-
     post {
         success { echo "Training pipeline uploaded to KFP successfully." }
         failure { echo "Pipeline failed — check the logs above." }
