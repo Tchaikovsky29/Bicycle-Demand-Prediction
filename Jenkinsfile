@@ -4,7 +4,7 @@ pipeline {
     environment {
         DOCKERHUB_USERNAME = "tchaikovsky29"
         ROOT_IMAGE         = "${DOCKERHUB_USERNAME}/env-base-image"
-        PIPELINE_IMAGE     = "${DOCKERHUB_USERNAME}/inference_transformer"
+        PIPELINE_IMAGE     = "${DOCKERHUB_USERNAME}/inference-transformer"
         GIT_SSL_NO_VERIFY = 'true'
         PIPELINE_DOCKERFILE = "src/pipeline/Dockerfile"
         PIPELINE_TRIGGER    = "src/pipeline/inference_transformer.py"
