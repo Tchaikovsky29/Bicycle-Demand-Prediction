@@ -89,7 +89,7 @@ def training_pipeline():
     configure_task(pusher)
 
 if __name__ == "__main__":
-    client = kfp.Client(host="http://localhost:8080")
+    client = kfp.Client(host="http://plausible-header-calzone.ngrok-free.dev")
     
     try:
         pipeline_id = client.get_pipeline_id("training-pipeline")
